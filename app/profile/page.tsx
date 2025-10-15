@@ -9,30 +9,149 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { useSession } from "next-auth/react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { AlertCircle, CheckCircle, Upload } from "lucide-react"
 
 export default function ProfilePage() {
-  const { data: session } = useSession()
+  const { data: session, update } = useSession()
   const [isEditing, setIsEditing] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
   const [formData, setFormData] = useState({
-    name: session?.user?.name || "",
-    email: session?.user?.email || "",
+    name: "",
+    email: "",
     bio: "",
     phone: "",
+    image: "",
   })
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }))
+  useEffect(() => {
+    if (session?.user) {
+      fetchProfile()
+    }
+  }, [session])
+
+  const fetchProfile = async () => {
+    try {
+      const response = await fetch("/api/profile")
+      const data = await response.json()
+
+      if (response.ok && data.user) {
+        setFormData({
+          name: data.user.name || "",
+          email: data.user.email || "",
+          bio: data.user.bio || "",
+          phone: data.user.phone || "",
+          image: data.user.image || "",
+        })
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error)
+    }
   }
 
-  const handleSave = () => {
-    // In a real app, you'd save to your backend
-    alert("Profile updated successfully!")
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+    // Clear error for this field
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }))
+    }
+  }
+
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {}
+
+    // Name validation
+    if (!formData.name || formData.name.trim().length < 2) {
+      newErrors.name = "Name must be at least 2 characters"
+    }
+
+    // Email validation
+    const emailRegex = /^\S+@\S+\.\S+$/
+    if (!formData.email || !emailRegex.test(formData.email)) {
+      newErrors.email = "Please enter a valid email"
+    }
+
+    // Phone validation (optional)
+    if (formData.phone && !/^\+?[1-9]\d{1,14}$/.test(formData.phone)) {
+      newErrors.phone = "Please enter a valid phone number"
+    }
+
+    // Bio validation (optional)
+    if (formData.bio && formData.bio.length > 500) {
+      newErrors.bio = "Bio cannot exceed 500 characters"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSave = async () => {
+    setError("")
+    setSuccess("")
+
+    if (!validateForm()) {
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      const response = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        if (data.details) {
+          const serverErrors: { [key: string]: string } = {}
+          data.details.forEach((error: { field: string; message: string }) => {
+            serverErrors[error.field] = error.message
+          })
+          setErrors(serverErrors)
+        } else {
+          setError(data.error || "Failed to update profile")
+        }
+        return
+      }
+
+      setSuccess("Profile updated successfully!")
+      setIsEditing(false)
+
+      // Update session with new data
+      await update({
+        name: formData.name,
+        email: formData.email,
+        image: formData.image,
+      })
+    } catch (error) {
+      console.error("Update profile error:", error)
+      setError("An unexpected error occurred. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleCancel = () => {
     setIsEditing(false)
+    setErrors({})
+    setError("")
+    setSuccess("")
+    fetchProfile()
   }
 
   return (
@@ -42,6 +161,21 @@ export default function ProfilePage() {
           <h1 className="text-3xl font-bold">Profile</h1>
           <p className="text-muted-foreground">Manage your account information</p>
         </div>
+
+        {/* Alerts */}
+        {success && (
+          <Alert className="border-green-500 bg-green-50">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-600">{success}</AlertDescription>
+          </Alert>
+        )}
+
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Profile Picture */}
@@ -53,13 +187,31 @@ export default function ProfilePage() {
             <CardContent className="space-y-4">
               <div className="flex justify-center">
                 <Avatar className="w-24 h-24">
-                  <AvatarImage src={session?.user?.image || ""} />
-                  <AvatarFallback className="text-lg">{session?.user?.name?.charAt(0) || "U"}</AvatarFallback>
+                  <AvatarImage src={formData.image || session?.user?.image || ""} />
+                  <AvatarFallback className="text-lg">
+                    {formData.name?.charAt(0) || session?.user?.name?.charAt(0) || "U"}
+                  </AvatarFallback>
                 </Avatar>
               </div>
-              <Button variant="outline" className="w-full bg-transparent">
-                Change Photo
-              </Button>
+              {isEditing && (
+                <div className="space-y-2">
+                  <Label htmlFor="image">Image URL</Label>
+                  <Input
+                    id="image"
+                    name="image"
+                    type="url"
+                    placeholder="https://example.com/image.jpg"
+                    value={formData.image}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                  />
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <Badge variant={session?.user?.role === "admin" ? "default" : "secondary"}>
+                  {session?.user?.role === "admin" ? "Admin" : "User"}
+                </Badge>
+              </div>
             </CardContent>
           </Card>
 
@@ -71,12 +223,18 @@ export default function ProfilePage() {
                   <CardTitle>Personal Information</CardTitle>
                   <CardDescription>Update your personal details</CardDescription>
                 </div>
-                <Button
-                  variant={isEditing ? "default" : "outline"}
-                  onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
-                >
-                  {isEditing ? "Save Changes" : "Edit Profile"}
-                </Button>
+                {!isEditing ? (
+                  <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleCancel} disabled={isLoading}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSave} disabled={isLoading}>
+                      {isLoading ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -89,7 +247,9 @@ export default function ProfilePage() {
                     value={formData.name}
                     onChange={handleInputChange}
                     disabled={!isEditing}
+                    className={errors.name ? "border-red-500" : ""}
                   />
+                  {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -100,7 +260,9 @@ export default function ProfilePage() {
                     value={formData.email}
                     onChange={handleInputChange}
                     disabled={!isEditing}
+                    className={errors.email ? "border-red-500" : ""}
                   />
+                  {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
                 </div>
               </div>
               <div className="space-y-2">
@@ -111,8 +273,10 @@ export default function ProfilePage() {
                   value={formData.phone}
                   onChange={handleInputChange}
                   disabled={!isEditing}
-                  placeholder="Enter your phone number"
+                  placeholder="Enter your phone number (e.g., +1234567890)"
+                  className={errors.phone ? "border-red-500" : ""}
                 />
+                {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="bio">Bio</Label>
@@ -124,7 +288,10 @@ export default function ProfilePage() {
                   disabled={!isEditing}
                   placeholder="Tell us about yourself"
                   rows={3}
+                  className={errors.bio ? "border-red-500" : ""}
                 />
+                {errors.bio && <p className="text-sm text-red-500">{errors.bio}</p>}
+                <p className="text-xs text-muted-foreground">{formData.bio.length}/500 characters</p>
               </div>
             </CardContent>
           </Card>
@@ -134,7 +301,7 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle>Account Statistics</CardTitle>
-            <CardDescription>Your GroupSave activity overview</CardDescription>
+            <CardDescription>Your Splitzy activity overview</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-3">

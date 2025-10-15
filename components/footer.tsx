@@ -8,7 +8,7 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Users className="h-6 w-6 text-primary" />
-              <span className="text-lg font-bold font-serif">GroupSave</span>
+              <span className="text-lg font-bold font-serif">Splitzy</span>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
               The safe and transparent way to split digital subscriptions and save money together.
@@ -72,7 +72,7 @@ export function Footer() {
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm">
                 <Mail className="h-4 w-4 text-primary" />
-                <span>support@groupsave.com</span>
+                <span>support@splitzy.com</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <MessageCircle className="h-4 w-4 text-primary" />
@@ -89,7 +89,7 @@ export function Footer() {
         <hr className="my-8" />
 
         <div className="flex flex-col md:flex-row justify-between items-center text-sm text-muted-foreground">
-          <p>&copy; 2024 GroupSave. All rights reserved.</p>
+          <p>&copy; 2024 Splitzy. All rights reserved.</p>
           <div className="flex gap-6 mt-4 md:mt-0">
             <a href="#" className="hover:text-primary transition-colors">
               Privacy Policy

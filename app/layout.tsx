@@ -17,7 +17,7 @@ const workSans = Work_Sans({
 })
 
 export const metadata: Metadata = {
-  title: "GroupSave - Split Digital Subscriptions",
+  title: "Splitzy - Split Digital Subscriptions",
   description: "Join groups to get family plan pricing on Spotify, Netflix, YouTube Premium and more",
     generator: 'v0.app'
 }

@@ -19,7 +19,7 @@ const testimonials = [
   {
     name: "Emily Johnson",
     role: "Marketing Manager",
-    content: "I was skeptical at first, but GroupSave delivered exactly what they promised. Highly recommend!",
+    content: "I was skeptical at first, but Splitzy delivered exactly what they promised. Highly recommend!",
     rating: 5,
     savings: "$28/month",
   },

@@ -50,7 +50,7 @@ export function HowItWorks() {
     <section id="how-it-works" className="py-20 px-4">
       <div className="container mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold font-serif mb-4">How GroupSave Works</h2>
+          <h2 className="text-3xl md:text-4xl font-bold font-serif mb-4">How Splitzy Works</h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Simple, safe, and transparent. Join groups with confidence knowing you only pay when your group is ready.
           </p>

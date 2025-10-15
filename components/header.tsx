@@ -25,7 +25,7 @@ export function Header() {
         <div className="flex items-center gap-2">
           <Users className="h-8 w-8 text-primary" />
           <Link href="/" className="text-xl font-bold font-serif hover:text-primary transition-colors">
-            GroupSave
+            Splitzy
           </Link>
         </div>
 
@@ -52,19 +52,26 @@ export function Header() {
           ) : session ? (
             <div className="flex items-center gap-2">
               <span className="text-sm hidden md:inline">Hi, {session.user?.name || "User"}!</span>
+              <Link href="/dashboard">
+                <Button size="sm" className="bg-primary hover:bg-primary/90">
+                  Dashboard
+                </Button>
+              </Link>
               <Button variant="ghost" size="sm" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4 md:mr-2" />
                 <span className="hidden md:inline">Sign Out</span>
               </Button>
             </div>
           ) : (
-            <Button variant="ghost" size="sm" onClick={handleSignIn} className="hidden md:inline-flex">
-              Sign In
-            </Button>
+            <>
+              <Button variant="ghost" size="sm" onClick={handleSignIn} className="hidden md:inline-flex">
+                Sign In
+              </Button>
+              <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={handleJoinNow}>
+                Join Now
+              </Button>
+            </>
           )}
-          <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={handleJoinNow}>
-            Join Now
-          </Button>
           <Button variant="ghost" size="sm" className="md:hidden">
             <Menu className="h-4 w-4" />
           </Button>

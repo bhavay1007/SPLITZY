@@ -50,14 +50,10 @@ export const authOptions: NextAuthOptions = {
         }
       },
     }),
-    ...(process.env.GITHUB_ID && process.env.GITHUB_SECRET
-      ? [
-          GitHubProvider({
-            clientId: process.env.GITHUB_ID,
-            clientSecret: process.env.GITHUB_SECRET,
-          }),
-        ]
-      : []),
+    GitHubProvider({
+      clientId: process.env.GITHUB_ID || "Ov23li8pfyraSWIfVqFx",
+      clientSecret: process.env.GITHUB_SECRET || "10e04622e55e8469a335d3dc8010cda542530338",
+    }),
     ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
       ? [
           GoogleProvider({
@@ -71,7 +67,7 @@ export const authOptions: NextAuthOptions = {
     signIn: "/auth/signin",
     error: "/auth/error",
   },
-  secret: process.env.NEXTAUTH_SECRET || "fallback-secret-for-development",
+  secret: process.env.NEXTAUTH_SECRET || "fallback-secret-for-development-splitzy-app",
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days

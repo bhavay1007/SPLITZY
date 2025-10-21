@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Github, Mail, AlertCircle, Sparkles, UserPlus, CheckCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { validatePassword, validateEmail } from "@/lib/password-validation"
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -32,6 +33,27 @@ export default function SignUpPage() {
   const [apiError, setApiError] = useState("")
   const [emailChecking, setEmailChecking] = useState(false)
   const [emailExists, setEmailExists] = useState(false)
+  const [passwordValidation, setPasswordValidation] = useState<{
+    isValid: boolean;
+    errors: string[];
+    requirements: {
+      minLength: boolean;
+      hasUppercase: boolean;
+      hasLowercase: boolean;
+      hasNumber: boolean;
+      hasSpecialChar: boolean;
+    };
+  }>({
+    isValid: false,
+    errors: [],
+    requirements: {
+      minLength: false,
+      hasUppercase: false,
+      hasLowercase: false,
+      hasNumber: false,
+      hasSpecialChar: false,
+    }
+  })
 
   useEffect(() => {
     const setUpProviders = async () => {
@@ -93,6 +115,22 @@ export default function SignUpPage() {
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }))
     }
+
+    // Validate password in real-time
+    if (name === "password") {
+      const validation = validatePassword(value)
+      setPasswordValidation(validation)
+    }
+
+    // Validate email in real-time
+    if (name === "email") {
+      const emailValidation = validateEmail(value)
+      if (!emailValidation.isValid && value) {
+        setErrors((prev) => ({ ...prev, email: emailValidation.error || "" }))
+      } else if (emailValidation.isValid) {
+        setErrors((prev) => ({ ...prev, email: "" }))
+      }
+    }
   }
 
   const validateForm = () => {
@@ -104,22 +142,16 @@ export default function SignUpPage() {
     }
 
     // Email validation
-    const emailRegex = /^\S+@\S+\.\S+$/
-    if (!formData.email || !emailRegex.test(formData.email)) {
-      newErrors.email = "Please enter a valid email"
+    const emailValidation = validateEmail(formData.email)
+    if (!emailValidation.isValid) {
+      newErrors.email = emailValidation.error || "Please enter a valid email"
     }
 
-    // Password validation
-    if (!formData.password || formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters"
-    } else {
-      if (!/[A-Z]/.test(formData.password)) {
-        newErrors.password = "Password must contain at least one uppercase letter"
-      } else if (!/[a-z]/.test(formData.password)) {
-        newErrors.password = "Password must contain at least one lowercase letter"
-      } else if (!/[0-9]/.test(formData.password)) {
-        newErrors.password = "Password must contain at least one number"
-      }
+    // Password validation - use the comprehensive validation
+    const passwordValidationResult = validatePassword(formData.password)
+    if (!passwordValidationResult.isValid) {
+      // Don't set a single password error, let the requirements display handle it
+      newErrors.password = "Password does not meet requirements"
     }
 
     // Confirm password validation
@@ -133,7 +165,7 @@ export default function SignUpPage() {
     }
 
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    return Object.keys(newErrors).length === 0 && passwordValidationResult.isValid
   }
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
@@ -290,11 +322,51 @@ export default function SignUpPage() {
                 id="password"
                 name="password"
                 type="password"
-                placeholder="Create a password (min. 6 chars, 1 uppercase, 1 number)"
+                placeholder="Create a strong password"
                 value={formData.password}
                 onChange={handleInputChange}
                 className={errors.password ? "border-red-500" : ""}
               />
+              
+              {/* Password Requirements Display */}
+              {formData.password && !passwordValidation.isValid && (
+                <div className="mt-2 space-y-1">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Password Requirements:</p>
+                  <div className="grid grid-cols-1 gap-1 text-xs">
+                    <div className={`flex items-center gap-2 ${passwordValidation.requirements.minLength ? 'text-green-600' : 'text-red-500'}`}>
+                      <span>{passwordValidation.requirements.minLength ? '✓' : '✗'}</span>
+                      <span>At least 6 characters</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordValidation.requirements.hasUppercase ? 'text-green-600' : 'text-red-500'}`}>
+                      <span>{passwordValidation.requirements.hasUppercase ? '✓' : '✗'}</span>
+                      <span>One uppercase letter (A-Z)</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordValidation.requirements.hasLowercase ? 'text-green-600' : 'text-red-500'}`}>
+                      <span>{passwordValidation.requirements.hasLowercase ? '✓' : '✗'}</span>
+                      <span>One lowercase letter (a-z)</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordValidation.requirements.hasNumber ? 'text-green-600' : 'text-red-500'}`}>
+                      <span>{passwordValidation.requirements.hasNumber ? '✓' : '✗'}</span>
+                      <span>One number (0-9)</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordValidation.requirements.hasSpecialChar ? 'text-green-600' : 'text-red-500'}`}>
+                      <span>{passwordValidation.requirements.hasSpecialChar ? '✓' : '✗'}</span>
+                      <span>One special character (!@#$%^&*)</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Show success message when all requirements are met */}
+              {formData.password && passwordValidation.isValid && (
+                <div className="mt-2">
+                  <p className="text-sm text-green-600 flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Password meets all requirements
+                  </p>
+                </div>
+              )}
+              
               {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
             </div>
             <div className="space-y-2">
